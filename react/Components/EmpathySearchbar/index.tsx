@@ -2,7 +2,6 @@ import React, { useEffect, useRef, useContext } from "react";
 import { useOrderItems } from 'vtex.order-items/OrderItems';
 import { useOrderForm } from 'vtex.order-manager/OrderForm';
 import { ToastContext } from 'vtex.styleguide';
-import { useRuntime } from 'vtex.render-runtime';
 import { handleCartOperation } from "./utils/handleCart";
 import { useEmpathyWishlist } from './hooks/handleWishlist';
 import { findProductBySkuId } from './utils';
@@ -11,8 +10,6 @@ import { useSessionListener } from './hooks/useSessionListener';
 import { ACTIONS } from './constants';
 
 const EmpathySearchbar = () => {
-    const { navigate } = useRuntime();
-    const routedSearchRef = useRef('');
     useSessionListener();
     const { pushAddToCartEvent, pushRemoveFromCartEvent } = useGAAnalytics();
     const { addItems, updateQuantity, removeItem } = useOrderItems();
@@ -113,55 +110,8 @@ const EmpathySearchbar = () => {
             whitelabel: "empathymxwl1",
             consent: true,
             viewMode: 'embedded',
-            searchBoxTarget: '#empathy-input',
-            gridTarget: '#empathy-results-container',
+            resultsSelector: '.flex.flex-grow-1.w-100.flex-column',
             callbacks: {
-                UserAcceptedAQuery: function (acceptedQuery: any) {
-                    const query = typeof acceptedQuery === 'string'
-                        ? acceptedQuery
-                        : acceptedQuery?.query;
-                    const normalizedQuery = query?.trim();
-
-                    if (!normalizedQuery) return;
-
-                    const currentQuery = new URLSearchParams(window.location.search).get('query');
-                    const isCurrentSearch = window.location.pathname === '/busqueda'
-                        && currentQuery === normalizedQuery;
-
-                    if (!isCurrentSearch) {
-                        navigate({
-                            to: '/busqueda',
-                            query: { query: normalizedQuery },
-                        });
-
-                        const searchKey = `/busqueda?query=${normalizedQuery}`;
-                        const intervalId = window.setInterval(() => {
-                            const resultsContainer = document.querySelector('#empathy-results-container');
-                            const interfaceX = (window as any).InterfaceX;
-
-                            if (!resultsContainer || !interfaceX) return;
-
-                            window.clearInterval(intervalId);
-
-                            if (routedSearchRef.current === searchKey) return;
-
-                            routedSearchRef.current = searchKey;
-                            resultsContainer.classList.add('empathy-dedicated-results');
-                            const currentGridTarget = interfaceX.getSnippetConfig()?.gridTarget;
-                            const refreshedGridTarget = currentGridTarget === '#empathy-results-container'
-                                ? '.empathy-dedicated-results'
-                                : '#empathy-results-container';
-                            interfaceX.setSnippetConfig({
-                                gridTarget: refreshedGridTarget,
-                            });
-                            interfaceX.search(normalizedQuery);
-                        }, 100);
-
-                        window.setTimeout(() => {
-                            window.clearInterval(intervalId);
-                        }, 10000);
-                    }
-                },
                 UserClickedResultAddToCart: function (result: any, metadata: any) {
                     const cart = (window as any).InterfaceX?.getSnippetConfig()?.cart || {};
                     handleCartOperation({
@@ -211,56 +161,17 @@ const EmpathySearchbar = () => {
                         wishlistActionRef.current(result);
                     }
                 }
-            }
+            },
+            uiLang: "es-MX"
         };
 
-        (window as any).InterfaceX?.init();
+        // InterfaceX has no documented destroy/reset API, so re-mounting this component
+        // (e.g. during a VTEX SPA navigation) would spawn a second, competing widget instance.
+        if (!(window as any).__interfaceXInitialized) {
+            (window as any).InterfaceX?.init();
+            (window as any).__interfaceXInitialized = true;
+        }
 
-    }, []);
-
-    useEffect(() => {
-        if (window.location.pathname !== '/busqueda') return;
-
-        const query = new URLSearchParams(window.location.search).get('query')?.trim();
-
-        if (!query) return;
-
-        const searchKey = `${window.location.pathname}?query=${query}`;
-
-        if (routedSearchRef.current === searchKey) return;
-
-        const runRoutedSearch = () => {
-            const resultsContainer = document.querySelector('#empathy-results-container');
-            const interfaceX = (window as any).InterfaceX;
-
-            if (!resultsContainer || !interfaceX) return false;
-
-            routedSearchRef.current = searchKey;
-            resultsContainer.classList.add('empathy-dedicated-results');
-            const currentGridTarget = interfaceX.getSnippetConfig()?.gridTarget;
-            const refreshedGridTarget = currentGridTarget === '#empathy-results-container'
-                ? '.empathy-dedicated-results'
-                : '#empathy-results-container';
-            interfaceX.setSnippetConfig({
-                gridTarget: refreshedGridTarget,
-            });
-            interfaceX.search(query);
-            return true;
-        };
-
-        if (runRoutedSearch()) return;
-
-        const intervalId = window.setInterval(() => {
-            if (runRoutedSearch()) window.clearInterval(intervalId);
-        }, 100);
-        const timeoutId = window.setTimeout(() => {
-            window.clearInterval(intervalId);
-        }, 10000);
-
-        return () => {
-            window.clearInterval(intervalId);
-            window.clearTimeout(timeoutId);
-        };
     }, []);
 
     // Sync pre-existing cart to Empathy once on mount, after orderForm is ready
