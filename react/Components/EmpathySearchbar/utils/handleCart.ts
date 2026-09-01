@@ -49,7 +49,7 @@ export async function handleCartOperation({
     });
 
     try {
-        await handleActionAddToCart({ skuId: cleanId, quantity, action });
+        await handleActionAddToCart({ skuId: cleanId, quantity, action, sellerIds: result.sellerIds });
         if (showToast) {
             showToast(getCartToastMessage(actionType === 'add' ? 'addSuccess' : 'removeSuccess'));
         }

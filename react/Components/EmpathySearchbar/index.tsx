@@ -4,7 +4,7 @@ import { useOrderForm } from 'vtex.order-manager/OrderForm';
 import { ToastContext } from 'vtex.styleguide';
 import { handleCartOperation } from "./utils/handleCart";
 import { useEmpathyWishlist } from './hooks/handleWishlist';
-import { findProductBySkuId } from './utils';
+import { findProductBySkuId, pickSellerId } from './utils';
 import { useGAAnalytics } from './hooks/useGAAnalytics';
 import { useSessionListener } from './hooks/useSessionListener';
 import { ACTIONS } from './constants';
@@ -64,13 +64,13 @@ const EmpathySearchbar = () => {
         return item_object;
     }
 
-    async function handleActionAddToCart({ action, skuId, quantity }: any) {
+    async function handleActionAddToCart({ action, skuId, quantity, sellerIds }: any) {
         const productData: any = await findProductBySkuId(skuId);
         const product = productData && productData.length > 0 ? productData[0] : null;
 
         const item_object = await handleClickAction({
             productSKU: skuId,
-            sellerId: 1,
+            sellerId: pickSellerId(sellerIds),
             quantity,
         });
 

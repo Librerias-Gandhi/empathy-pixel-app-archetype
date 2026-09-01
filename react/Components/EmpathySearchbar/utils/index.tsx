@@ -1,4 +1,16 @@
+import { SELLER_PRIORITY } from '../constants';
+
 const NAME_COOKIE = 'ZipCode';
+
+// Aplica la jerarquía de negocio sobre los sellerIds que expone Empathy en el callback.
+export const pickSellerId = (sellerIds?: string[]): string => {
+    if (!sellerIds || sellerIds.length === 0) return SELLER_PRIORITY.DEFAULT;
+    if (sellerIds.includes(SELLER_PRIORITY.THREE_PL)) return SELLER_PRIORITY.THREE_PL;
+    if (sellerIds.includes(SELLER_PRIORITY.CEDIS)) return SELLER_PRIORITY.CEDIS;
+
+    const marketplaceSeller = sellerIds.find((id) => id !== SELLER_PRIORITY.DEFAULT);
+    return marketplaceSeller || SELLER_PRIORITY.DEFAULT;
+}
 
 export const mapSkuItemForPixelEvent = (productItem: any) => {
     const category = productItem?.categories ? productItem.categories.map((category: any) => category.replace('/', ' ')).join(',') : ''
