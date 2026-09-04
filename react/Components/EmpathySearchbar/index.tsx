@@ -4,7 +4,7 @@ import { useOrderForm } from 'vtex.order-manager/OrderForm';
 import { ToastContext } from 'vtex.styleguide';
 import { handleCartOperation } from "./utils/handleCart";
 import { useEmpathyWishlist } from './hooks/handleWishlist';
-import { findProductBySkuId, pickSellerId } from './utils';
+import { findProductBySkuId, fetchBestStockSellerBySku, resolvePrioritySeller } from './utils';
 import { useGAAnalytics } from './hooks/useGAAnalytics';
 import { useSessionListener } from './hooks/useSessionListener';
 import { ACTIONS } from './constants';
@@ -68,9 +68,11 @@ const EmpathySearchbar = () => {
         const productData: any = await findProductBySkuId(skuId);
         const product = productData && productData.length > 0 ? productData[0] : null;
 
+        const stockBalanceResponse = await fetchBestStockSellerBySku(skuId);
+
         const item_object = await handleClickAction({
             productSKU: skuId,
-            sellerId: pickSellerId(sellerIds),
+            sellerId: resolvePrioritySeller(stockBalanceResponse, sellerIds),
             quantity,
         });
 

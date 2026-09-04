@@ -1,15 +1,35 @@
-import { SELLER_PRIORITY } from '../constants';
+import { DEFAULT_SELLER } from '../constants';
 
 const NAME_COOKIE = 'ZipCode';
 
-// Aplica la jerarquía de negocio sobre los sellerIds que expone Empathy en el callback.
-export const pickSellerId = (sellerIds?: string[]): string => {
-    if (!sellerIds || sellerIds.length === 0) return SELLER_PRIORITY.DEFAULT;
-    if (sellerIds.includes(SELLER_PRIORITY.THREE_PL)) return SELLER_PRIORITY.THREE_PL;
-    if (sellerIds.includes(SELLER_PRIORITY.CEDIS)) return SELLER_PRIORITY.CEDIS;
+// Debe reflejar la lógica de gandhi-components (CustomAddToCart/EmpatyAddToCart).
+export const fetchBestStockSellerBySku = async (skuId: any): Promise<any> => {
+    try {
+        const response = await fetch(`/v1/stock-balance/${skuId}`, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+        });
 
-    const marketplaceSeller = sellerIds.find((id) => id !== SELLER_PRIORITY.DEFAULT);
-    return marketplaceSeller || SELLER_PRIORITY.DEFAULT;
+        if (!response.ok) {
+            throw new Error(`Stock balance request failed: ${response.status}`);
+        }
+
+        return await response.json();
+    } catch (error) {
+        console.error('Error fetching stock balance:', error);
+        return null;
+    }
+}
+
+// Prioridad: bestOption de stock-balance > marketplace de Empathy (!= DEFAULT) > DEFAULT.
+export const resolvePrioritySeller = (stockBalanceResponse: any, sellerIds?: string[]): string => {
+    const bestSellerId = stockBalanceResponse?.bestOption?.sellerId;
+    if (bestSellerId) return bestSellerId;
+
+    const marketplaceSeller = sellerIds?.find((id) => id !== DEFAULT_SELLER);
+    return marketplaceSeller || DEFAULT_SELLER;
 }
 
 export const mapSkuItemForPixelEvent = (productItem: any) => {
