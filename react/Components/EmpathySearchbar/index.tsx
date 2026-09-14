@@ -4,7 +4,7 @@ import { useOrderForm } from 'vtex.order-manager/OrderForm';
 import { ToastContext } from 'vtex.styleguide';
 import { handleCartOperation } from "./utils/handleCart";
 import { useEmpathyWishlist } from './hooks/handleWishlist';
-import { findProductBySkuId } from './utils';
+import { findProductBySkuId, fetchBestStockSellerBySku, resolvePrioritySeller } from './utils';
 import { useGAAnalytics } from './hooks/useGAAnalytics';
 import { useSessionListener } from './hooks/useSessionListener';
 import { ACTIONS } from './constants';
@@ -64,13 +64,15 @@ const EmpathySearchbar = () => {
         return item_object;
     }
 
-    async function handleActionAddToCart({ action, skuId, quantity }: any) {
+    async function handleActionAddToCart({ action, skuId, quantity, sellerIds }: any) {
         const productData: any = await findProductBySkuId(skuId);
         const product = productData && productData.length > 0 ? productData[0] : null;
 
+        const stockBalanceResponse = await fetchBestStockSellerBySku(skuId);
+
         const item_object = await handleClickAction({
             productSKU: skuId,
-            sellerId: 1,
+            sellerId: resolvePrioritySeller(stockBalanceResponse, sellerIds),
             quantity,
         });
 
@@ -103,13 +105,14 @@ const EmpathySearchbar = () => {
          * Más información en https://github.com/empathyco/empathy-pixel-app-archetype?#3-configuraci%C3%B3n-initx
          */
         (window as any).initX = {
-            instance: "empathy",
+            instance: "gandhinew",
             lang: "es",
             scope: "desktop",
-            currency: "EUR",
+            currency: "MXN",
             whitelabel: "empathymxwl1",
             consent: true,
             viewMode: 'embedded',
+            resultsSelector: '.flex.flex-grow-1.w-100.flex-column',
             callbacks: {
                 UserClickedResultAddToCart: function (result: any, metadata: any) {
                     const cart = (window as any).InterfaceX?.getSnippetConfig()?.cart || {};
@@ -160,10 +163,16 @@ const EmpathySearchbar = () => {
                         wishlistActionRef.current(result);
                     }
                 }
-            }
+            },
+            uiLang: "es-MX"
         };
 
-        (window as any).InterfaceX?.init();
+        // InterfaceX has no documented destroy/reset API, so re-mounting this component
+        // (e.g. during a VTEX SPA navigation) would spawn a second, competing widget instance.
+        if (!(window as any).__interfaceXInitialized) {
+            (window as any).InterfaceX?.init();
+            (window as any).__interfaceXInitialized = true;
+        }
 
     }, []);
 

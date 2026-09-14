@@ -1,4 +1,36 @@
+import { DEFAULT_SELLER } from '../constants';
+
 const NAME_COOKIE = 'ZipCode';
+
+// Debe reflejar la lógica de gandhi-components (CustomAddToCart/EmpatyAddToCart).
+export const fetchBestStockSellerBySku = async (skuId: any): Promise<any> => {
+    try {
+        const response = await fetch(`/v1/stock-balance/${skuId}`, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+        });
+
+        if (!response.ok) {
+            throw new Error(`Stock balance request failed: ${response.status}`);
+        }
+
+        return await response.json();
+    } catch (error) {
+        console.error('Error fetching stock balance:', error);
+        return null;
+    }
+}
+
+// Prioridad: bestOption de stock-balance > marketplace de Empathy (!= DEFAULT) > DEFAULT.
+export const resolvePrioritySeller = (stockBalanceResponse: any, sellerIds?: string[]): string => {
+    const bestSellerId = stockBalanceResponse?.bestOption?.sellerId;
+    if (bestSellerId) return bestSellerId;
+
+    const marketplaceSeller = sellerIds?.find((id) => id !== DEFAULT_SELLER);
+    return marketplaceSeller || DEFAULT_SELLER;
+}
 
 export const mapSkuItemForPixelEvent = (productItem: any) => {
     const category = productItem?.categories ? productItem.categories.map((category: any) => category.replace('/', ' ')).join(',') : ''

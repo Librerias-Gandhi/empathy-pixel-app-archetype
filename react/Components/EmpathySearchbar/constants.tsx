@@ -3,3 +3,5 @@ export const ACTIONS = {
     updateQuantity: "updateQuantity",
     removeProduct: "removeProduct",
 }
+
+export const DEFAULT_SELLER = '1';
