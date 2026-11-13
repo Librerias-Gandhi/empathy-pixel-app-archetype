@@ -127,7 +127,7 @@ Ejemplo:
 (window as any).initX = {
     instance: "{INSTANCE}",        // Identificador del cliente provisto por Empathy. Ej: 'chedraui'
     lang: "es",                    // Idioma: 'es', 'en', 'pt', etc.
-    scope: "desktop",              // 'desktop' o 'mobile'
+    scope,                         // 'desktop' | 'mobile' — resuelto por useEmpathyScope (ver abajo)
     currency: "EUR",               // 'EUR', 'USD', 'MXN', etc.
     consent: false,
     viewMode: 'embedded',
@@ -446,6 +446,20 @@ Esta es la **interfaz principal** para comunicarse con el widget de Empathy:
 
 > 📚 **Más información:** Puedes obtener más información sobre la configuración del snippet en la [documentación oficial de Empathy](https://docs.empathy.co/develop-empathy-platform/build-search-ui/web-archetype-integration-guide.html#snippet-configuration).
 
+### `scope` por dispositivo (`useEmpathyScope`)
+
+El `scope` de Empathy (`'desktop'` | `'mobile'`) se resuelve con `useDevice` de `vtex.device-detector`, el mismo hook que usa `header-layout` para elegir entre header desktop y mobile:
+
+- **Por defecto:** `'desktop'`. En phone/tablet (`isMobile`) es `'mobile'`.
+- **Al montar:** el valor se escribe en `window.initX.scope` antes de `InterfaceX.init()`.
+- **Al cambiar de breakpoint:** se llama a `InterfaceX.setSnippetConfig({ scope })`.
+- **Debug:** en consola aparecen `[Empathy] scope inicial: ...` y `[Empathy] scope cambió: desktop -> mobile`.
+
+```javascript
+// Ver el scope actual
+console.log(window.__empathyScope, window.InterfaceX.getSnippetConfig()?.scope);
+```
+
 ### Eventos GA4
 
 La app envía 3 eventos personalizados:
@@ -471,7 +485,7 @@ Todos incluyen:
 - [ ] Actualizar `instance` (identificador del cliente en Empathy)
 - [ ] Ajustar `lang` según idioma del sitio
 - [ ] Configurar `currency` según moneda de la tienda
-- [ ] Verificar `scope`: `'desktop'` o `'mobile'`
+- [ ] Verificar `scope`: lo resuelve `useEmpathyScope` (`'desktop'` por defecto, `'mobile'` en phone/tablet)
 
 #### Funcionalidades Opcionales
 - [ ] ¿El cliente tiene **variantes**? → Mantener callbacks de `Variant`

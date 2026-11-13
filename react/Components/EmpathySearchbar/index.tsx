@@ -7,10 +7,13 @@ import { useEmpathyWishlist } from './hooks/handleWishlist';
 import { findProductBySkuId, fetchBestStockSellerBySku, resolvePrioritySeller } from './utils';
 import { useGAAnalytics } from './hooks/useGAAnalytics';
 import { useSessionListener } from './hooks/useSessionListener';
+import { useEmpathyScope } from './hooks/useEmpathyScope';
 import { ACTIONS } from './constants';
 
 const EmpathySearchbar = () => {
     useSessionListener();
+    // Declared before the initX useEffect so its effect runs first on mount
+    const scope = useEmpathyScope();
     const { pushAddToCartEvent, pushRemoveFromCartEvent } = useGAAnalytics();
     const { addItems, updateQuantity, removeItem } = useOrderItems();
     const { orderForm, loading: orderFormLoading } = useOrderForm();
@@ -107,7 +110,7 @@ const EmpathySearchbar = () => {
         (window as any).initX = {
             instance: "gandhinew",
             lang: "es",
-            scope: "desktop",
+            scope,
             currency: "MXN",
             whitelabel: "empathymxwl1",
             consent: true,
